@@ -227,9 +227,9 @@ Then run:
 PYTHONPATH=src python3 -m binance_paper_assistant.cli watch SOLUSDT 15m --notify ntfy
 ```
 
-## Deploy On A VM
+## Deploy On A Linux Server
 
-Quick setup on a Linux VM:
+Quick setup on a Linux server or VM:
 
 ```bash
 git clone git@github.com:joeynor/tradingbot_advisor.git
@@ -254,19 +254,80 @@ Run a one-off check:
 PYTHONPATH=src python3 -m binance_paper_assistant.cli watch SOLUSDT 15m --once --notify ntfy
 ```
 
-Run continuously in the background:
+Run continuously in the background with `nohup`:
 
 ```bash
 nohup env PYTHONPATH=src .venv/bin/python -m binance_paper_assistant.cli watch SOLUSDT 15m --notify ntfy > watch.log 2>&1 &
 tail -f watch.log
 ```
 
+For a proper always-on deployment that survives logout and reboot, use `systemd`.
+
+Create a reusable service template:
+
+```bash
+sudo tee /etc/systemd/system/tradingbot-watch@.service > /dev/null <<'EOF'
+[Unit]
+Description=Tradingbot watcher for %i
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/root/tradingbot_advisor
+Environment=PYTHONPATH=src
+ExecStart=/root/tradingbot_advisor/.venv/bin/python -u -m binance_paper_assistant.cli watch SOLUSDT %i --notify ntfy
+Restart=always
+RestartSec=10
+User=root
+
+[Install]
+WantedBy=multi-user.target
+EOF
+```
+
+Reload `systemd` and start the intervals you want:
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable --now tradingbot-watch@15m.service
+sudo systemctl enable --now tradingbot-watch@1h.service
+sudo systemctl enable --now tradingbot-watch@4h.service
+sudo systemctl enable --now tradingbot-watch@1d.service
+```
+
+Check service status:
+
+```bash
+systemctl status tradingbot-watch@15m.service
+systemctl status tradingbot-watch@1h.service
+systemctl status tradingbot-watch@4h.service
+systemctl status tradingbot-watch@1d.service
+```
+
+Follow logs:
+
+```bash
+journalctl -u tradingbot-watch@15m.service -f
+journalctl -u tradingbot-watch@1h.service -f
+journalctl -u tradingbot-watch@4h.service -f
+journalctl -u tradingbot-watch@1d.service -f
+```
+
+Restart or stop a watcher:
+
+```bash
+sudo systemctl restart tradingbot-watch@15m.service
+sudo systemctl stop tradingbot-watch@15m.service
+```
+
 Useful operational notes:
 
 - The watcher only sends a notification when a fresh trade suggestion appears.
 - If Binance times out, the process stays alive and logs the failure before trying again on the next cycle.
-- `ntfy.sh` works well for VM deployments because it does not depend on a local desktop session.
-- If your VM has flaky connectivity to Binance, increasing `REQUEST_TIMEOUT_SECONDS` to `30` or `45` is a reasonable first step.
+- `ntfy.sh` works well for server deployments because it does not depend on a local desktop session.
+- If your server has flaky connectivity to Binance, increasing `REQUEST_TIMEOUT_SECONDS` to `30` or `45` is a reasonable first step.
+- Use supported interval names exactly: `15m`, `1h`, `4h`, and `1d`.
 
 ### API examples
 
