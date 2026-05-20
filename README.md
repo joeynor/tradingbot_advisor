@@ -172,6 +172,12 @@ PYTHONPATH=src python3 -m binance_paper_assistant.mcp_server --transport streama
 
 HTTP clients can connect to [http://127.0.0.1:8001/mcp](http://127.0.0.1:8001/mcp).
 
+There is also a tiny Python MCP client example in [examples/mcp_client.py](/Users/joey/Documents/RanDWork/tradingbot/examples/mcp_client.py):
+
+```bash
+PYTHONPATH=src python3 examples/mcp_client.py
+```
+
 ## Example Commands
 
 ### CLI examples
