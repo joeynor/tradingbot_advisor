@@ -221,6 +221,47 @@ Then run:
 PYTHONPATH=src python3 -m binance_paper_assistant.cli watch SOLUSDT 15m --notify ntfy
 ```
 
+## Deploy On A VM
+
+Quick setup on a Linux VM:
+
+```bash
+git clone git@github.com:joeynor/tradingbot_advisor.git
+cd tradingbot_advisor
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env
+```
+
+Recommended `.env` values for a VM watcher:
+
+```bash
+REQUEST_TIMEOUT_SECONDS=30
+NTFY_TOPIC_URL=https://ntfy.sh/your-topic
+NTFY_ACCESS_TOKEN=
+```
+
+Run a one-off check:
+
+```bash
+PYTHONPATH=src python3 -m binance_paper_assistant.cli watch SOLUSDT 15m --once --notify ntfy
+```
+
+Run continuously in the background:
+
+```bash
+nohup env PYTHONPATH=src .venv/bin/python -m binance_paper_assistant.cli watch SOLUSDT 15m --notify ntfy > watch.log 2>&1 &
+tail -f watch.log
+```
+
+Useful operational notes:
+
+- The watcher only sends a notification when a fresh trade suggestion appears.
+- If Binance times out, the process stays alive and logs the failure before trying again on the next cycle.
+- `ntfy.sh` works well for VM deployments because it does not depend on a local desktop session.
+- If your VM has flaky connectivity to Binance, increasing `REQUEST_TIMEOUT_SECONDS` to `30` or `45` is a reasonable first step.
+
 ### API examples
 
 ```bash
